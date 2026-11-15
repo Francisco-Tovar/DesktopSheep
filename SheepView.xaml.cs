@@ -11,8 +11,8 @@ public partial class SheepView : System.Windows.Controls.UserControl
     private const int Rows = 5;
 
     private static readonly Lazy<BitmapSource[,]> SheepFrames = new(() => LoadSpriteSheet("sheep_spritesheet_1024x640.png"));
-    private static readonly Lazy<BitmapSource[,]> DogFrames = new(() => LoadSpriteSheet("Dog_spritesheet_1024x640.png"));
-    private static readonly Lazy<BitmapSource[,]> SchnauzerFrames = new(() => LoadSpriteSheet("Schnauzer_spritesheet_1024x640.png"));
+    private static readonly Lazy<BitmapSource[,]> DogFrames = new(() => LoadSpriteSheet("dachshound.png"));
+    private static readonly Lazy<BitmapSource[,]> SchnauzerFrames = new(() => LoadSpriteSheet("schnauzer.png"));
 
     private PetKind _petKind = PetKind.Sheep;
 

@@ -20,8 +20,8 @@
 
   <ItemGroup>
     <Resource Include="sheep_spritesheet_1024x640.png" />
-    <Resource Include="Dog_spritesheet_1024x640.png" />
-    <Resource Include="Schnauzer_spritesheet_1024x640.png" />
+    <Resource Include="dachshound.png" />
+    <Resource Include="schnauzer.png" />
     <Resource Include="sheep.ico" />
     <Resource Include="KawaiiDesktopPets_SFX\*.wav" />
   </ItemGroup>
