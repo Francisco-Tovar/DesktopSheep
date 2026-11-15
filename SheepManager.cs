@@ -25,6 +25,7 @@ internal sealed class SheepManager
     private Forms.ToolStripMenuItem? _trayGravityItem;
     private Forms.ToolStripMenuItem? _trayClimbItem;
     private Forms.ToolStripMenuItem? _traySoundItem;
+    private Forms.TrackBar? _trayVolumeSlider;
     private Forms.ToolStripMenuItem? _trayTopMostItem;
     private Forms.ToolStripMenuItem? _trayClickThroughItem;
 
@@ -36,6 +37,12 @@ internal sealed class SheepManager
     {
         get => SoundEffects.Enabled;
         private set => SoundEffects.Enabled = value;
+    }
+
+    public double SoundVolume
+    {
+        get => SoundEffects.Volume;
+        private set => SoundEffects.Volume = Math.Clamp(value, 0.0, 1.0);
     }
 
     public int Count => _flock.Count;
@@ -125,6 +132,12 @@ internal sealed class SheepManager
     public void SetSoundEnabled(bool enabled)
     {
         SoundEnabled = enabled;
+        UpdateTrayMenuState();
+    }
+
+    public void SetSoundVolume(double volume)
+    {
+        SoundVolume = volume;
         UpdateTrayMenuState();
     }
 
@@ -292,6 +305,26 @@ internal sealed class SheepManager
         };
         _traySoundItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(() => SetSoundEnabled(_traySoundItem.Checked));
 
+        var trayVolumeMenu = new Forms.ToolStripMenuItem("Volume");
+        _trayVolumeSlider = new Forms.TrackBar
+        {
+            Minimum = 0,
+            Maximum = 100,
+            TickFrequency = 25,
+            SmallChange = 5,
+            LargeChange = 25,
+            Value = (int)Math.Round(SoundVolume * 100),
+            Width = 130,
+            AutoSize = false,
+            Height = 32
+        };
+        _trayVolumeSlider.ValueChanged += (_, _) =>
+        {
+            double vol = _trayVolumeSlider.Value / 100.0;
+            System.Windows.Application.Current.Dispatcher.Invoke(() => SetSoundVolume(vol));
+        };
+        trayVolumeMenu.DropDownItems.Add(new Forms.ToolStripControlHost(_trayVolumeSlider));
+
         _trayTopMostItem = new Forms.ToolStripMenuItem("Always on Top")
         {
             CheckOnClick = true,
@@ -325,6 +358,7 @@ internal sealed class SheepManager
         menu.Items.Add(_trayGravityItem);
         menu.Items.Add(_trayClimbItem);
         menu.Items.Add(_traySoundItem);
+        menu.Items.Add(trayVolumeMenu);
         menu.Items.Add(_trayTopMostItem);
         menu.Items.Add(_trayClickThroughItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -376,6 +410,13 @@ internal sealed class SheepManager
 
         if (_traySoundItem != null)
             _traySoundItem.Checked = SoundEnabled;
+
+        if (_trayVolumeSlider != null)
+        {
+            int target = (int)Math.Round(SoundVolume * 100);
+            if (_trayVolumeSlider.Value != target)
+                _trayVolumeSlider.Value = target;
+        }
 
         if (_trayTopMostItem != null)
             _trayTopMostItem.Checked = AlwaysOnTop;

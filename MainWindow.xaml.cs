@@ -844,6 +844,8 @@ public partial class MainWindow : Window
         };
         climbItem.Click += (_, _) => _manager.SetWindowClimbing(climbItem.IsChecked);
 
+        var soundMenu = new MenuItem { Header = "Sound" };
+
         var soundItem = new MenuItem
         {
             Header = "Sound Effects",
@@ -851,6 +853,54 @@ public partial class MainWindow : Window
             IsChecked = _manager.SoundEnabled
         };
         soundItem.Click += (_, _) => _manager.SetSoundEnabled(soundItem.IsChecked);
+
+        var volumeLabel = new TextBlock
+        {
+            Text = $"{(int)Math.Round(_manager.SoundVolume * 100)}%",
+            Width = 36,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextAlignment = TextAlignment.Right
+        };
+
+        var volumeSlider = new Slider
+        {
+            Minimum = 0,
+            Maximum = 100,
+            Width = 110,
+            Value = Math.Round(_manager.SoundVolume * 100),
+            VerticalAlignment = VerticalAlignment.Center,
+            IsSnapToTickEnabled = true,
+            TickFrequency = 5
+        };
+        volumeSlider.ValueChanged += (_, args) =>
+        {
+            double vol = args.NewValue / 100.0;
+            _manager.SetSoundVolume(vol);
+            volumeLabel.Text = $"{(int)Math.Round(args.NewValue)}%";
+        };
+
+        var volumePanel = new StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal
+        };
+        volumePanel.Children.Add(new TextBlock
+        {
+            Text = "Volume",
+            Margin = new Thickness(0, 0, 8, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        volumePanel.Children.Add(volumeSlider);
+        volumePanel.Children.Add(volumeLabel);
+
+        var volumeItem = new MenuItem
+        {
+            Header = volumePanel,
+            StaysOpenOnClick = true
+        };
+
+        soundMenu.Items.Add(soundItem);
+        soundMenu.Items.Add(new Separator());
+        soundMenu.Items.Add(volumeItem);
 
         var topMostItem = new MenuItem
         {
@@ -895,7 +945,7 @@ public partial class MainWindow : Window
         menu.Items.Add(new Separator());
         menu.Items.Add(gravityItem);
         menu.Items.Add(climbItem);
-        menu.Items.Add(soundItem);
+        menu.Items.Add(soundMenu);
         menu.Items.Add(topMostItem);
         menu.Items.Add(clickThroughItem);
         menu.Items.Add(centerItem);
