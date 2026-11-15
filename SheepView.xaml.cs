@@ -5,8 +5,6 @@ namespace KawaiiDesktopPets;
 
 public partial class SheepView : System.Windows.Controls.UserControl
 {
-    private const int CellWidth = 128;
-    private const int CellHeight = 128;
     private const int Columns = 8;
     private const int Rows = 5;
 
@@ -154,12 +152,15 @@ public partial class SheepView : System.Windows.Controls.UserControl
         sheet.EndInit();
         sheet.Freeze();
 
+        int cellWidth = sheet.PixelWidth / Columns;
+        int cellHeight = sheet.PixelHeight / Rows;
+
         var frames = new BitmapSource[Rows, Columns];
         for (int r = 0; r < Rows; r++)
         {
             for (int c = 0; c < Columns; c++)
             {
-                var rect = new Int32Rect(c * CellWidth, r * CellHeight, CellWidth, CellHeight);
+                var rect = new Int32Rect(c * cellWidth, r * cellHeight, cellWidth, cellHeight);
                 var cropped = new CroppedBitmap(sheet, rect);
                 cropped.Freeze();
                 frames[r, c] = cropped;
