@@ -1,0 +1,83 @@
+<UserControl x:Class="KawaiiDesktopPets.SheepView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="140" Height="140"
+             Background="Transparent">
+    <Grid>
+        <Canvas x:Name="UfoGroup"
+                Width="120" Height="110"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Visibility="Collapsed"
+                IsHitTestVisible="False">
+            <Polygon Points="42,26 78,26 102,108 18,108"
+                     Opacity="0.32">
+                <Polygon.Fill>
+                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Color="#7BF5FF" Offset="0" />
+                        <GradientStop Color="#007BF5FF" Offset="1" />
+                    </LinearGradientBrush>
+                </Polygon.Fill>
+            </Polygon>
+            <Ellipse Width="34" Height="16" Canvas.Left="43" Canvas.Top="8"
+                     Fill="#9AE8FF" Stroke="#4C8BA8" StrokeThickness="1.2" Opacity="0.9" />
+            <Ellipse Width="64" Height="16" Canvas.Left="28" Canvas.Top="16"
+                     Fill="#B8C6D4" Stroke="#586776" StrokeThickness="1.5" />
+            <Ellipse Width="6" Height="4" Canvas.Left="36" Canvas.Top="22" Fill="#FFE66D" />
+            <Ellipse Width="6" Height="4" Canvas.Left="57" Canvas.Top="23" Fill="#FF6B8B" />
+            <Ellipse Width="6" Height="4" Canvas.Left="78" Canvas.Top="22" Fill="#7BF5A3" />
+        </Canvas>
+
+        <Border x:Name="BubbleBorder"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,2,0,0"
+                Padding="9,3"
+                CornerRadius="12"
+                Background="#FFFDF9"
+                BorderBrush="#D8CFC4"
+                BorderThickness="1.5"
+                Visibility="Collapsed"
+                IsHitTestVisible="False">
+            <TextBlock x:Name="BubbleText"
+                       FontFamily="Segoe UI"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       Foreground="#4A403A"
+                       Text="Baa!" />
+        </Border>
+
+        <Grid Width="116" Height="116"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Bottom"
+              Margin="0,0,0,4"
+              RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="FlipTransform" ScaleX="1" ScaleY="1" />
+                    <TranslateTransform x:Name="BodyBobTransform" X="0" Y="0" />
+                </TransformGroup>
+            </Grid.RenderTransform>
+
+            <Ellipse x:Name="ShadowEllipse"
+                     Width="72" Height="11"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Bottom"
+                     Margin="0,0,0,2"
+                     Fill="#26000000"
+                     IsHitTestVisible="False" />
+
+            <!-- Invisible hit-target so clicks around the sheep silhouette always register -->
+            <Ellipse Width="96" Height="92"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Bottom"
+                     Margin="0,0,0,6"
+                     Fill="#01000000" />
+
+            <Image x:Name="SpriteImage"
+                   Width="116" Height="116"
+                   Stretch="Uniform"
+                   RenderOptions.BitmapScalingMode="HighQuality" />
+        </Grid>
+    </Grid>
+</UserControl>
