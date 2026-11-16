@@ -4,7 +4,8 @@ public enum PetKind
 {
     Sheep,
     Dog,
-    Schnauzer
+    Schnauzer,
+    Chick
 }
 
 public enum SheepState
