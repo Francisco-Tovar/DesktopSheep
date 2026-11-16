@@ -23,6 +23,7 @@
     <Resource Include="dachshound.png" />
     <Resource Include="schnauzer.png" />
     <Resource Include="chick.png" />
+    <Resource Include="cow.png" />
     <Resource Include="sheep.ico" />
     <Resource Include="KawaiiDesktopPets_SFX\*.wav" />
   </ItemGroup>
