@@ -89,6 +89,7 @@ public partial class MainWindow : Window
         PetKind.Dog or PetKind.Schnauzer => "Woof!",
         PetKind.Chick => "Cheep!",
         PetKind.Cow => "Moo!",
+        PetKind.Toby => "Meow!",
         _ => "Baa!"
     };
 
@@ -757,6 +758,7 @@ public partial class MainWindow : Window
                 PetKind.Dog or PetKind.Schnauzer => "Pet Dog (Woof!)",
                 PetKind.Chick => "Pet Chick (Cheep!)",
                 PetKind.Cow => "Pet Cow (Moo!)",
+                PetKind.Toby => "Pet Toby (Meow!)",
                 _ => "Pet Sheep (Baa!)"
             }
         };
@@ -832,6 +834,13 @@ public partial class MainWindow : Window
         };
         addCowItem.Click += (_, _) => _manager.AddCow(true);
 
+        var addTobyItem = new MenuItem
+        {
+            Header = $"Add Toby (Cat) ({_manager.Count}/{SheepManager.MaxSheep})",
+            IsEnabled = _manager.Count < SheepManager.MaxSheep
+        };
+        addTobyItem.Click += (_, _) => _manager.AddToby(true);
+
         var switchMenu = new MenuItem { Header = "Switch Pet" };
         void AddSwitchOption(string label, PetKind kind)
         {
@@ -850,6 +859,7 @@ public partial class MainWindow : Window
         AddSwitchOption("Schnauzer", PetKind.Schnauzer);
         AddSwitchOption("Chick", PetKind.Chick);
         AddSwitchOption("Cow", PetKind.Cow);
+        AddSwitchOption("Toby (Cat)", PetKind.Toby);
 
         var removeSheepItem = new MenuItem
         {
@@ -972,6 +982,7 @@ public partial class MainWindow : Window
         menu.Items.Add(addSchnauzerItem);
         menu.Items.Add(addChickItem);
         menu.Items.Add(addCowItem);
+        menu.Items.Add(addTobyItem);
         menu.Items.Add(switchMenu);
         menu.Items.Add(removeSheepItem);
         menu.Items.Add(new Separator());

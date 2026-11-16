@@ -23,6 +23,7 @@ internal sealed class SheepManager
     private Forms.ToolStripMenuItem? _trayAddSchnauzerItem;
     private Forms.ToolStripMenuItem? _trayAddChickItem;
     private Forms.ToolStripMenuItem? _trayAddCowItem;
+    private Forms.ToolStripMenuItem? _trayAddTobyItem;
     private Forms.ToolStripMenuItem? _trayRemoveItem;
     private Forms.ToolStripMenuItem? _trayGravityItem;
     private Forms.ToolStripMenuItem? _trayClimbItem;
@@ -65,6 +66,8 @@ internal sealed class SheepManager
     public void AddChick(bool spawnNearCenter = true) => AddPet(PetKind.Chick, spawnNearCenter);
 
     public void AddCow(bool spawnNearCenter = true) => AddPet(PetKind.Cow, spawnNearCenter);
+
+    public void AddToby(bool spawnNearCenter = true) => AddPet(PetKind.Toby, spawnNearCenter);
 
     public void AddPet(PetKind kind, bool spawnNearCenter = true)
     {
@@ -287,6 +290,9 @@ internal sealed class SheepManager
         _trayAddCowItem = new Forms.ToolStripMenuItem("Add Cow");
         _trayAddCowItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(() => AddCow(true));
 
+        _trayAddTobyItem = new Forms.ToolStripMenuItem("Add Toby (Cat)");
+        _trayAddTobyItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(() => AddToby(true));
+
         _trayRemoveItem = new Forms.ToolStripMenuItem("Remove Pet");
         _trayRemoveItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(RemoveLastSheep);
 
@@ -365,6 +371,7 @@ internal sealed class SheepManager
         menu.Items.Add(_trayAddSchnauzerItem);
         menu.Items.Add(_trayAddChickItem);
         menu.Items.Add(_trayAddCowItem);
+        menu.Items.Add(_trayAddTobyItem);
         menu.Items.Add(_trayRemoveItem);
         menu.Items.Add(centerItem);
         menu.Items.Add(scatterItem);
@@ -423,6 +430,12 @@ internal sealed class SheepManager
         {
             _trayAddCowItem.Text = $"Add Cow ({_flock.Count}/{MaxSheep})";
             _trayAddCowItem.Enabled = _flock.Count < MaxSheep;
+        }
+
+        if (_trayAddTobyItem != null)
+        {
+            _trayAddTobyItem.Text = $"Add Toby (Cat) ({_flock.Count}/{MaxSheep})";
+            _trayAddTobyItem.Enabled = _flock.Count < MaxSheep;
         }
 
         if (_trayRemoveItem != null)

@@ -19,6 +19,8 @@ internal static class SoundEffects
     private static readonly Lazy<byte[]?> ChickHappy = LoadResourceWav("chick_happy.wav");
     private static readonly Lazy<byte[]?> CowMoo = LoadResourceWav("cow_moo.wav");
     private static readonly Lazy<byte[]?> CowHappy = LoadResourceWav("cow_happy.wav");
+    private static readonly Lazy<byte[]?> CatMeow = LoadResourceWav("cat_meow.wav");
+    private static readonly Lazy<byte[]?> CatHappy = LoadResourceWav("cat_happy.wav");
     private static readonly Lazy<byte[]?> PetEat = LoadResourceWav("pet_eat.wav");
     private static readonly Lazy<byte[]?> PetBoing = LoadResourceWav("pet_boing.wav");
     private static readonly Lazy<byte[]?> PetYawn = LoadResourceWav("pet_yawn.wav");
@@ -30,6 +32,7 @@ internal static class SoundEffects
         PetKind.Schnauzer => SchnauzerBark.Value,
         PetKind.Chick => ChickChirp.Value,
         PetKind.Cow => CowMoo.Value,
+        PetKind.Toby => CatMeow.Value,
         _ => SheepBaa.Value
     });
 
@@ -39,6 +42,7 @@ internal static class SoundEffects
         PetKind.Schnauzer => SchnauzerHappy.Value,
         PetKind.Chick => ChickHappy.Value,
         PetKind.Cow => CowHappy.Value,
+        PetKind.Toby => CatHappy.Value,
         _ => SheepHappy.Value
     });
 
