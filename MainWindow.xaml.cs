@@ -967,6 +967,9 @@ public partial class MainWindow : Window
         var repoItem = new MenuItem { Header = "GitHub Repo (Thovarisk)" };
         repoItem.Click += (_, _) => SheepManager.OpenRepoUrl();
 
+        var updateItem = new MenuItem { Header = "Check for Updates" };
+        updateItem.Click += async (_, _) => await UpdateChecker.CheckForUpdatesAsync(_manager);
+
         var exitItem = new MenuItem { Header = "Exit" };
         exitItem.Click += (_, _) => _manager.ExitApplication();
 
@@ -995,6 +998,7 @@ public partial class MainWindow : Window
         menu.Items.Add(new Separator());
         menu.Items.Add(aboutItem);
         menu.Items.Add(repoItem);
+        menu.Items.Add(updateItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(exitItem);
 

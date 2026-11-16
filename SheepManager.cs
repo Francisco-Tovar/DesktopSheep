@@ -210,7 +210,7 @@ internal sealed class SheepManager
         {
             Title = "About KawaiiDesktopPets",
             Width = 340,
-            Height = 175,
+            Height = 190,
             WindowStartupLocation = WindowStartupLocation.CenterScreen,
             ResizeMode = ResizeMode.NoResize,
             Topmost = true
@@ -219,7 +219,7 @@ internal sealed class SheepManager
         var panel = new StackPanel { Margin = new Thickness(18) };
         panel.Children.Add(new TextBlock
         {
-            Text = "KawaiiDesktopPets",
+            Text = $"KawaiiDesktopPets v{UpdateChecker.CurrentVersionText}",
             FontSize = 16,
             FontWeight = FontWeights.Bold
         });
@@ -366,6 +366,9 @@ internal sealed class SheepManager
         var repoItem = new Forms.ToolStripMenuItem("GitHub Repo (Thovarisk)");
         repoItem.Click += (_, _) => OpenRepoUrl();
 
+        var updateItem = new Forms.ToolStripMenuItem("Check for Updates");
+        updateItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.InvokeAsync(() => UpdateChecker.CheckForUpdatesAsync(this));
+
         menu.Items.Add(_trayAddItem);
         menu.Items.Add(_trayAddDogItem);
         menu.Items.Add(_trayAddSchnauzerItem);
@@ -385,6 +388,7 @@ internal sealed class SheepManager
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(aboutItem);
         menu.Items.Add(repoItem);
+        menu.Items.Add(updateItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(exitItem);
 

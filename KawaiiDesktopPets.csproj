@@ -10,6 +10,7 @@
     <AssemblyName>KawaiiDesktopPets</AssemblyName>
     <RootNamespace>KawaiiDesktopPets</RootNamespace>
     <ApplicationIcon>sheep.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
     <Authors>Thovarisk</Authors>
     <Company>Thovarisk</Company>
     <Product>KawaiiDesktopPets</Product>
