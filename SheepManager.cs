@@ -16,6 +16,9 @@ internal sealed class SheepManager
     private readonly List<MainWindow> _flock = new();
     private readonly WindowTracker _windowTracker = new();
     private readonly Random _rng = new();
+    private readonly System.Windows.Threading.DispatcherTimer _battleTimer = new();
+    private MainWindow? _activeBoss;
+    private double _nextBattleDelay = 40.0;
 
     private Forms.NotifyIcon? _trayIcon;
     private Forms.ToolStripMenuItem? _trayAddItem;
@@ -24,6 +27,7 @@ internal sealed class SheepManager
     private Forms.ToolStripMenuItem? _trayAddChickItem;
     private Forms.ToolStripMenuItem? _trayAddCowItem;
     private Forms.ToolStripMenuItem? _trayAddTobyItem;
+    private Forms.ToolStripMenuItem? _trayBossBattleItem;
     private Forms.ToolStripMenuItem? _trayRemoveItem;
     private Forms.ToolStripMenuItem? _trayGravityItem;
     private Forms.ToolStripMenuItem? _trayClimbItem;
@@ -55,6 +59,121 @@ internal sealed class SheepManager
     {
         InitializeTrayIcon();
         AddPet(PetKind.Sheep, spawnNearCenter: false);
+
+        _battleTimer.Interval = TimeSpan.FromSeconds(1.0);
+        _battleTimer.Tick += (_, _) => UpdateBossBattleTimer(1.0);
+        _battleTimer.Start();
+    }
+
+    public bool IsBossBattleActive => _activeBoss != null;
+
+    public bool HasAllSpeciesOnScreen()
+    {
+        foreach (var kind in Enum.GetValues<PetKind>())
+        {
+            if (!_flock.Any(p => p.PetKind == kind))
+                return false;
+        }
+        return true;
+    }
+
+    public void StartBossBattle()
+    {
+        if (_activeBoss != null || _flock.Count < 2)
+            return;
+
+        _activeBoss = _flock[_rng.Next(_flock.Count)];
+        int maxHp = Math.Max(12, (_flock.Count - 1) * 5);
+        _activeBoss.BeginBossMode(maxHp);
+
+        foreach (var pet in _flock)
+        {
+            if (!ReferenceEquals(pet, _activeBoss))
+                pet.BeginAttackBoss(_activeBoss);
+        }
+
+        UpdateTrayMenuState();
+    }
+
+    public void OnBossDefeated(MainWindow boss)
+    {
+        if (!ReferenceEquals(_activeBoss, boss))
+            return;
+
+        SoundEffects.PlayBossDefeat();
+        foreach (var pet in _flock)
+        {
+            if (!ReferenceEquals(pet, boss))
+                pet.CelebrateBossVictory();
+        }
+
+        _activeBoss = null;
+        _nextBattleDelay = 75.0 + _rng.NextDouble() * 60.0;
+        UpdateTrayMenuState();
+    }
+
+    public void ApplyBossStomp(MainWindow boss)
+    {
+        double bx = boss.Left + boss.Width / 2.0;
+        double by = boss.Top + boss.Height;
+        foreach (var pet in _flock)
+        {
+            if (ReferenceEquals(pet, boss))
+                continue;
+
+            double px = pet.Left + pet.Width / 2.0;
+            double py = pet.Top + pet.Height;
+            if (Math.Abs(px - bx) < 170 && Math.Abs(py - by) < 75)
+            {
+                int dir = px >= bx ? 1 : -1;
+                pet.KnockbackFromBoss(dir);
+            }
+        }
+    }
+
+    public double? GetNearestAttackerX(MainWindow boss)
+    {
+        double bx = boss.Left + boss.Width / 2.0;
+        double bestDist = double.MaxValue;
+        double? bestX = null;
+        foreach (var pet in _flock)
+        {
+            if (ReferenceEquals(pet, boss))
+                continue;
+            double px = pet.Left + pet.Width / 2.0;
+            double d = Math.Abs(px - bx);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                bestX = px;
+            }
+        }
+        return bestX;
+    }
+
+    private void UpdateBossBattleTimer(double dt)
+    {
+        if (_activeBoss != null)
+        {
+            if (!_flock.Contains(_activeBoss) || _flock.Count < 2)
+            {
+                _activeBoss = null;
+                foreach (var pet in _flock)
+                    pet.ClearBattleState();
+                UpdateTrayMenuState();
+            }
+            return;
+        }
+
+        if (!HasAllSpeciesOnScreen())
+        {
+            _nextBattleDelay = 30.0 + _rng.NextDouble() * 25.0;
+            return;
+        }
+
+        _nextBattleDelay -= dt;
+        if (_nextBattleDelay <= 0)
+            StartBossBattle();
     }
 
     public void AddSheep(bool spawnNearCenter = true) => AddPet(PetKind.Sheep, spawnNearCenter);
@@ -89,6 +208,12 @@ internal sealed class SheepManager
         }
 
         _flock.Remove(sheep);
+        if (ReferenceEquals(_activeBoss, sheep))
+        {
+            _activeBoss = null;
+            foreach (var pet in _flock)
+                pet.ClearBattleState();
+        }
         sheep.ForceClose();
         UpdateTrayMenuState();
     }
@@ -302,6 +427,9 @@ internal sealed class SheepManager
         var scatterItem = new Forms.ToolStripMenuItem("Scatter Flock");
         scatterItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(ScatterAll);
 
+        _trayBossBattleItem = new Forms.ToolStripMenuItem("Start Boss Battle!");
+        _trayBossBattleItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(StartBossBattle);
+
         _trayGravityItem = new Forms.ToolStripMenuItem("Gravity")
         {
             CheckOnClick = true,
@@ -378,6 +506,7 @@ internal sealed class SheepManager
         menu.Items.Add(_trayRemoveItem);
         menu.Items.Add(centerItem);
         menu.Items.Add(scatterItem);
+        menu.Items.Add(_trayBossBattleItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(_trayGravityItem);
         menu.Items.Add(_trayClimbItem);
@@ -444,6 +573,12 @@ internal sealed class SheepManager
 
         if (_trayRemoveItem != null)
             _trayRemoveItem.Enabled = _flock.Count > 1;
+
+        if (_trayBossBattleItem != null)
+        {
+            _trayBossBattleItem.Enabled = _flock.Count >= 2 && _activeBoss == null;
+            _trayBossBattleItem.Text = _activeBoss != null ? "Boss Battle in Progress!" : "Start Boss Battle!";
+        }
 
         if (_trayGravityItem != null)
             _trayGravityItem.Checked = GravityEnabled;

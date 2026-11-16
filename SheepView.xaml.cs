@@ -44,6 +44,22 @@ public partial class SheepView : System.Windows.Controls.UserControl
         // Sprite sheet uses its baked-in pastel pink bow.
     }
 
+    public void SetBossVisual(bool isBoss, int hp, int maxHp, double hitFlashSeconds)
+    {
+        if (!isBoss || maxHp <= 0)
+        {
+            BossHpPanel.Visibility = Visibility.Collapsed;
+            SpriteImage.Opacity = 1.0;
+            return;
+        }
+
+        BossHpPanel.Visibility = Visibility.Visible;
+        double ratio = Math.Clamp(hp / (double)maxHp, 0.0, 1.0);
+        BossHpFill.Width = Math.Max(0.0, 84.0 * ratio);
+        BossHpLabel.Text = $"BOSS {Math.Max(0, hp)}/{maxHp}";
+        SpriteImage.Opacity = hitFlashSeconds > 0 && ((int)(hitFlashSeconds * 24) % 2 == 0) ? 0.55 : 1.0;
+    }
+
     public void UpdateVisuals(SheepState state, double animTime, int facingDirection, bool isBlinking, string? bubbleMessage)
     {
         FlipTransform.ScaleX = facingDirection >= 0 ? 1 : -1;

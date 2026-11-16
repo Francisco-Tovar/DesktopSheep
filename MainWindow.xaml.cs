@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private const double ClimbSpeed = 62.0;
     private const double BounceDamping = 0.35;
     private const double WindowFootOffset = 12.0;
+    private const double BasePetSize = 140.0;
 
     private readonly SheepManager _manager;
     private readonly Random _rng = new();
@@ -63,8 +64,23 @@ public partial class MainWindow : Window
     private readonly bool _spawnNearCenter;
     private PetKind _petKind;
 
+    private double _visualScale = 1.0;
+    private double _targetScale = 1.0;
+    private bool _isBoss;
+    private int _bossHp;
+    private int _bossMaxHp;
+    private double _bossHitFlash;
+    private double _bossStompCooldown;
+    private double _bossDefeatShrinkTimer;
+    private MainWindow? _bossTarget;
+    private double _attackCooldown;
+
+    public PetKind PetKind => _petKind;
+
     public bool CanCollideWithFlock =>
         !_isDragging
+        && !_isBoss
+        && _bossTarget == null
         && _collisionCooldown <= 0
         && _state is SheepState.Walking or SheepState.Running;
 
@@ -100,6 +116,86 @@ public partial class MainWindow : Window
     {
         _allowClose = true;
         Close();
+    }
+
+    public void BeginBossMode(int maxHp)
+    {
+        _bossTarget = null;
+        _climbingWindowHwnd = IntPtr.Zero;
+        _isBoss = true;
+        _bossHp = maxHp;
+        _bossMaxHp = maxHp;
+        _targetScale = 2.0;
+        _bossHitFlash = 0;
+        _bossStompCooldown = 2.8;
+        _bossDefeatShrinkTimer = 0;
+        _state = SheepState.Surprised;
+        _stateTimer = 1.5;
+        ShowBubble($"MEGA {VoiceText.ToUpperInvariant()} BOSS!!", 2.4);
+        SoundEffects.PlayBossRoar();
+    }
+
+    public void BeginAttackBoss(MainWindow boss)
+    {
+        _isBoss = false;
+        _targetScale = 1.0;
+        _bossTarget = boss;
+        _climbingWindowHwnd = IntPtr.Zero;
+        _attackCooldown = 0.25 + _rng.NextDouble() * 0.55;
+        ShowBubble("CHARGE!!", 1.3);
+    }
+
+    public void TakeBossDamage(int damage, int hitDir)
+    {
+        if (!_isBoss || _bossHp <= 0)
+            return;
+
+        _bossHp = Math.Max(0, _bossHp - damage);
+        _bossHitFlash = 0.28;
+        Left += hitDir * 4.0;
+
+        if (_bossHp <= 0)
+        {
+            _targetScale = 1.0;
+            _bossDefeatShrinkTimer = 1.4;
+            _state = SheepState.Surprised;
+            _stateTimer = 1.6;
+            ShowBubble("DEFEATED!! x_x", 2.2);
+            _manager.OnBossDefeated(this);
+        }
+        else if (_rng.NextDouble() < 0.35)
+        {
+            ShowBubble(_rng.Next(2) == 0 ? "OUCH!" : "GRRR!!", 0.9);
+        }
+    }
+
+    public void CelebrateBossVictory()
+    {
+        _bossTarget = null;
+        _state = SheepState.Happy;
+        _stateTimer = 2.8;
+        ShowBubble("VICTORY!! ★", 2.4);
+        PlayPetHappy();
+    }
+
+    public void KnockbackFromBoss(int dir)
+    {
+        if (_isDragging)
+            return;
+        _velX = dir * 210.0;
+        _velY = -260.0;
+        _attachedWindowHwnd = IntPtr.Zero;
+        _state = SheepState.Falling;
+        ShowBubble("WHOA!!", 0.9);
+    }
+
+    public void ClearBattleState()
+    {
+        _isBoss = false;
+        _bossHp = 0;
+        _bossMaxHp = 0;
+        _targetScale = 1.0;
+        _bossTarget = null;
     }
 
     public void SetGravity(bool enabled)
@@ -243,6 +339,17 @@ public partial class MainWindow : Window
 
         if (_climbCooldown > 0) _climbCooldown -= dt;
         if (_collisionCooldown > 0) _collisionCooldown -= dt;
+        if (_bossHitFlash > 0) _bossHitFlash -= dt;
+        if (_attackCooldown > 0) _attackCooldown -= dt;
+        if (_bossStompCooldown > 0) _bossStompCooldown -= dt;
+        if (_bossDefeatShrinkTimer > 0)
+        {
+            _bossDefeatShrinkTimer -= dt;
+            if (_bossDefeatShrinkTimer <= 0 && _bossHp <= 0)
+                _isBoss = false;
+        }
+
+        UpdateScale(dt);
 
         if (_alwaysOnTop && !_isContextMenuOpen)
         {
@@ -266,6 +373,33 @@ public partial class MainWindow : Window
 
         bool isBlinking = _blinkDuration > 0;
         Sheep.UpdateVisuals(_state, now, _facing, isBlinking, _bubbleMessage);
+        Sheep.SetBossVisual(_isBoss, _bossHp, _bossMaxHp, _bossHitFlash);
+    }
+
+    private void UpdateScale(double dt)
+    {
+        if (Math.Abs(_visualScale - _targetScale) < 0.002)
+        {
+            _visualScale = _targetScale;
+        }
+        else
+        {
+            double step = 1.4 * dt;
+            _visualScale = _visualScale < _targetScale
+                ? Math.Min(_targetScale, _visualScale + step)
+                : Math.Max(_targetScale, _visualScale - step);
+        }
+
+        double targetSize = BasePetSize * _visualScale;
+        if (Math.Abs(targetSize - Width) > 0.25)
+        {
+            double oldW = Width;
+            double oldH = Height;
+            Width = targetSize;
+            Height = targetSize;
+            Left -= (targetSize - oldW) / 2.0;
+            Top -= (targetSize - oldH);
+        }
     }
 
     private void UpdateBlink(double dt)
@@ -304,6 +438,25 @@ public partial class MainWindow : Window
     {
         if (_state is SheepState.Falling or SheepState.Climbing)
             return;
+
+        if (_isBoss && _bossHp > 0)
+        {
+            UpdateBossBehavior(dt);
+            return;
+        }
+
+        if (_bossTarget != null)
+        {
+            if (!_bossTarget._isBoss || _bossTarget._bossHp <= 0)
+            {
+                _bossTarget = null;
+            }
+            else
+            {
+                UpdateAttackerBehavior(dt);
+                return;
+            }
+        }
 
         _stateTimer -= dt;
         if (_stateTimer > 0)
@@ -370,6 +523,76 @@ public partial class MainWindow : Window
         else
         {
             TriggerUfoAbduction();
+        }
+    }
+
+    private void UpdateBossBehavior(double dt)
+    {
+        _stateTimer -= dt;
+        if (_bossStompCooldown <= 0 && _attachedWindowHwnd == IntPtr.Zero)
+        {
+            _bossStompCooldown = 3.4 + _rng.NextDouble() * 1.6;
+            _velY = -390.0;
+            _state = SheepState.Falling;
+            ShowBubble("STOMP!!", 1.1);
+            SoundEffects.PlayBossRoar();
+            _manager.ApplyBossStomp(this);
+            return;
+        }
+
+        if (_stateTimer <= 0)
+        {
+            double? targetX = _manager.GetNearestAttackerX(this);
+            if (targetX.HasValue)
+                _facing = targetX.Value >= Left + Width / 2.0 ? 1 : -1;
+            else
+                _facing = _rng.Next(2) == 0 ? 1 : -1;
+
+            _state = _rng.NextDouble() < 0.45 ? SheepState.Running : SheepState.Walking;
+            _stateTimer = 1.0 + _rng.NextDouble() * 1.4;
+        }
+    }
+
+    private void UpdateAttackerBehavior(double dt)
+    {
+        var boss = _bossTarget!;
+        double myCenterX = Left + Width / 2.0;
+        double myBottom = Top + Height;
+        double bossCenterX = boss.Left + boss.Width / 2.0;
+        double bossBottom = boss.Top + boss.Height;
+
+        double dx = bossCenterX - myCenterX;
+        double dy = bossBottom - myBottom;
+
+        if (Math.Abs(dy) > 45 && _attachedWindowHwnd != IntPtr.Zero)
+        {
+            _attachedWindowHwnd = IntPtr.Zero;
+            if (_gravityEnabled)
+                _state = SheepState.Falling;
+            return;
+        }
+
+        _facing = dx >= 0 ? 1 : -1;
+        if (Math.Abs(dx) > 95)
+        {
+            _state = SheepState.Running;
+            _stateTimer = 0.3;
+            return;
+        }
+
+        _state = SheepState.Idle;
+        _stateTimer = 0.2;
+        if (_attackCooldown <= 0 && Math.Abs(dy) < 60)
+        {
+            _attackCooldown = 0.65 + _rng.NextDouble() * 0.55;
+            _velY = -330.0;
+            _velX = _facing * 95.0;
+            _state = SheepState.Falling;
+
+            int dmg = _rng.NextDouble() < 0.22 ? 2 : 1;
+            boss.TakeBossDamage(dmg, _facing);
+            SoundEffects.PlayBossHit();
+            ShowBubble(dmg > 1 ? "CRIT!!" : (_rng.Next(2) == 0 ? "BONK!" : "POW!"), 0.85);
         }
     }
 
@@ -444,7 +667,9 @@ public partial class MainWindow : Window
 
         if (_state is SheepState.Walking or SheepState.Running)
         {
-            double speed = _state == SheepState.Running ? RunSpeed : WalkSpeed;
+            double speed = _state == SheepState.Running
+                ? (_bossTarget != null ? 215.0 : RunSpeed)
+                : WalkSpeed;
             Left += _facing * speed * dt;
 
             if (Left <= minX)
@@ -487,13 +712,14 @@ public partial class MainWindow : Window
         if (_gravityEnabled && (_state == SheepState.Falling || aboveFloor))
         {
             _state = SheepState.Falling;
-            double prevFeetY = Top + Height - WindowFootOffset;
+            double footOffset = WindowFootOffset * _visualScale;
+            double prevFeetY = Top + Height - footOffset;
 
             _velY += Gravity * dt;
             Left += _velX * dt;
             Top += _velY * dt;
 
-            double newFeetY = Top + Height - WindowFootOffset;
+            double newFeetY = Top + Height - footOffset;
             double centerX = Left + Width / 2.0;
 
             if (Left <= minX)
@@ -517,7 +743,7 @@ public partial class MainWindow : Window
 
                 if (landedWin != null)
                 {
-                    Top = landedWin.Value.Bounds.Top - Height + WindowFootOffset;
+                    Top = landedWin.Value.Bounds.Top - Height + WindowFootOffset * _visualScale;
                     _attachedWindowHwnd = landedWin.Value.Hwnd;
                     _attachedWindowRect = landedWin.Value.Bounds;
 
@@ -578,7 +804,7 @@ public partial class MainWindow : Window
 
         Top -= ClimbSpeed * dt;
 
-        double targetTop = winRect.Top - Height + WindowFootOffset;
+        double targetTop = winRect.Top - Height + WindowFootOffset * _visualScale;
         if (Top <= targetTop)
         {
             Top = targetTop;
@@ -961,6 +1187,13 @@ public partial class MainWindow : Window
         var centerItem = new MenuItem { Header = "Center All Sheep" };
         centerItem.Click += (_, _) => _manager.CenterAll();
 
+        var bossBattleItem = new MenuItem
+        {
+            Header = _manager.IsBossBattleActive ? "Boss Battle in Progress!" : "Start Boss Battle!",
+            IsEnabled = _manager.Count >= 2 && !_manager.IsBossBattleActive
+        };
+        bossBattleItem.Click += (_, _) => _manager.StartBossBattle();
+
         var aboutItem = new MenuItem { Header = "About (Developed by Thovarisk)" };
         aboutItem.Click += (_, _) => SheepManager.ShowAboutDialog();
 
@@ -995,6 +1228,7 @@ public partial class MainWindow : Window
         menu.Items.Add(topMostItem);
         menu.Items.Add(clickThroughItem);
         menu.Items.Add(centerItem);
+        menu.Items.Add(bossBattleItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(aboutItem);
         menu.Items.Add(repoItem);

@@ -25,6 +25,9 @@ internal static class SoundEffects
     private static readonly Lazy<byte[]?> PetBoing = LoadResourceWav("pet_boing.wav");
     private static readonly Lazy<byte[]?> PetYawn = LoadResourceWav("pet_yawn.wav");
     private static readonly Lazy<byte[]?> UfoBeam = LoadResourceWav("ufo_beam.wav");
+    private static readonly Lazy<byte[]?> BossRoar = LoadResourceWav("boss_roar.wav");
+    private static readonly Lazy<byte[]?> BossHit = LoadResourceWav("boss_hit.wav");
+    private static readonly Lazy<byte[]?> BossDefeat = LoadResourceWav("boss_defeat.wav");
 
     public static void PlayVoice(PetKind kind) => PlayBytes(kind switch
     {
@@ -50,6 +53,9 @@ internal static class SoundEffects
     public static void PlayNom() => PlayBytes(PetEat.Value);
     public static void PlayYawn() => PlayBytes(PetYawn.Value);
     public static void PlayUfo() => PlayBytes(UfoBeam.Value);
+    public static void PlayBossRoar() => PlayBytes(BossRoar.Value);
+    public static void PlayBossHit() => PlayBytes(BossHit.Value);
+    public static void PlayBossDefeat() => PlayBytes(BossDefeat.Value);
 
     public static void PlayWavFile(string path)
     {
