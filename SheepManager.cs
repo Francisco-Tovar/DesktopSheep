@@ -27,7 +27,6 @@ internal sealed class SheepManager
     private Forms.ToolStripMenuItem? _trayAddChickItem;
     private Forms.ToolStripMenuItem? _trayAddCowItem;
     private Forms.ToolStripMenuItem? _trayAddTobyItem;
-    private Forms.ToolStripMenuItem? _trayBossBattleItem;
     private Forms.ToolStripMenuItem? _trayRemoveItem;
     private Forms.ToolStripMenuItem? _trayGravityItem;
     private Forms.ToolStripMenuItem? _trayClimbItem;
@@ -431,9 +430,6 @@ internal sealed class SheepManager
         var scatterItem = new Forms.ToolStripMenuItem("Scatter Flock");
         scatterItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(ScatterAll);
 
-        _trayBossBattleItem = new Forms.ToolStripMenuItem("Start Boss Battle!");
-        _trayBossBattleItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(StartBossBattle);
-
         _trayGravityItem = new Forms.ToolStripMenuItem("Gravity")
         {
             CheckOnClick = true,
@@ -441,7 +437,7 @@ internal sealed class SheepManager
         };
         _trayGravityItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(() => SetGravity(_trayGravityItem.Checked));
 
-        _trayClimbItem = new Forms.ToolStripMenuItem("Window Climbing & Landing")
+        _trayClimbItem = new Forms.ToolStripMenuItem("Window Climbing && Landing")
         {
             CheckOnClick = true,
             Checked = WindowClimbingEnabled
@@ -563,6 +559,11 @@ internal sealed class SheepManager
         var updateItem = new Forms.ToolStripMenuItem("Check for Updates");
         updateItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.InvokeAsync(() => UpdateChecker.CheckForUpdatesAsync(this));
 
+        var versionItem = new Forms.ToolStripMenuItem($"Version v{UpdateChecker.CurrentVersionText}")
+        {
+            Enabled = false
+        };
+
         menu.Items.Add(_trayAddItem);
         menu.Items.Add(_trayAddDogItem);
         menu.Items.Add(_trayAddSchnauzerItem);
@@ -572,7 +573,6 @@ internal sealed class SheepManager
         menu.Items.Add(_trayRemoveItem);
         menu.Items.Add(centerItem);
         menu.Items.Add(scatterItem);
-        menu.Items.Add(_trayBossBattleItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(_trayGravityItem);
         menu.Items.Add(_trayClimbItem);
@@ -586,6 +586,7 @@ internal sealed class SheepManager
         menu.Items.Add(repoItem);
         menu.Items.Add(updateItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add(versionItem);
         menu.Items.Add(exitItem);
 
         _trayIcon = new Forms.NotifyIcon
@@ -640,12 +641,6 @@ internal sealed class SheepManager
 
         if (_trayRemoveItem != null)
             _trayRemoveItem.Enabled = _flock.Count > 1;
-
-        if (_trayBossBattleItem != null)
-        {
-            _trayBossBattleItem.Enabled = _flock.Count >= 2 && _activeBoss == null;
-            _trayBossBattleItem.Text = _activeBoss != null ? "Boss Battle in Progress!" : "Start Boss Battle!";
-        }
 
         if (_trayGravityItem != null)
             _trayGravityItem.Checked = GravityEnabled;

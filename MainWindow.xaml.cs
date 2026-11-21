@@ -1478,13 +1478,6 @@ public partial class MainWindow : Window
         var centerItem = new MenuItem { Header = "Center All Sheep" };
         centerItem.Click += (_, _) => _manager.CenterAll();
 
-        var bossBattleItem = new MenuItem
-        {
-            Header = _manager.IsBossBattleActive ? "Boss Battle in Progress!" : "Start Boss Battle!",
-            IsEnabled = _manager.Count >= 2 && !_manager.IsBossBattleActive
-        };
-        bossBattleItem.Click += (_, _) => _manager.StartBossBattle();
-
         var aboutItem = new MenuItem { Header = "About (Developed by Thovarisk)" };
         aboutItem.Click += (_, _) => SheepManager.ShowAboutDialog();
 
@@ -1493,6 +1486,12 @@ public partial class MainWindow : Window
 
         var updateItem = new MenuItem { Header = "Check for Updates" };
         updateItem.Click += async (_, _) => await UpdateChecker.CheckForUpdatesAsync(_manager);
+
+        var versionItem = new MenuItem
+        {
+            Header = $"Version v{UpdateChecker.CurrentVersionText}",
+            IsEnabled = false
+        };
 
         var exitItem = new MenuItem { Header = "Exit" };
         exitItem.Click += (_, _) => _manager.ExitApplication();
@@ -1520,12 +1519,12 @@ public partial class MainWindow : Window
         menu.Items.Add(topMostItem);
         menu.Items.Add(clickThroughItem);
         menu.Items.Add(centerItem);
-        menu.Items.Add(bossBattleItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(aboutItem);
         menu.Items.Add(repoItem);
         menu.Items.Add(updateItem);
         menu.Items.Add(new Separator());
+        menu.Items.Add(versionItem);
         menu.Items.Add(exitItem);
 
         menu.IsOpen = true;
