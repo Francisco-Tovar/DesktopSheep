@@ -494,59 +494,66 @@ public partial class MainWindow : Window
             }
         }
 
-        double roll = _rng.NextDouble();
-        if (roll < 0.36)
+        switch (_manager.ActivityMix.RollActivity(_rng))
         {
-            _state = SheepState.Walking;
-            _facing = _rng.Next(2) == 0 ? 1 : -1;
-            _stateTimer = 2.0 + _rng.NextDouble() * 4.0;
-        }
-        else if (roll < 0.48)
-        {
-            _state = SheepState.Running;
-            _facing = _rng.Next(2) == 0 ? 1 : -1;
-            _stateTimer = 1.4 + _rng.NextDouble() * 2.2;
-            if (_rng.NextDouble() < 0.35)
-                ShowBubble("Zoom!", 1.0);
-        }
-        else if (roll < 0.68)
-        {
-            _state = SheepState.Idle;
-            _stateTimer = 1.5 + _rng.NextDouble() * 2.5;
-            if (_rng.NextDouble() < 0.25)
-            {
-                ShowBubble(VoiceText, 1.4);
-                PlayPetVoice();
-            }
-        }
-        else if (roll < 0.78)
-        {
-            _state = SheepState.Eating;
-            _stateTimer = 2.2 + _rng.NextDouble() * 2.5;
-            ShowBubble("Nom...", 1.5);
-            SoundEffects.PlayNom();
-        }
-        else if (roll < 0.86)
-        {
-            _state = SheepState.Sitting;
-            _stateTimer = 2.5 + _rng.NextDouble() * 3.0;
-        }
-        else if (roll < 0.92)
-        {
-            _state = SheepState.Yawning;
-            _stateTimer = 1.5;
-            ShowBubble("*Yawn*", 1.4);
-            SoundEffects.PlayYawn();
-        }
-        else if (roll < 0.985)
-        {
-            _state = SheepState.Sleeping;
-            _stateTimer = 4.0 + _rng.NextDouble() * 4.0;
-            ShowBubble("Zzz...", 2.5);
-        }
-        else
-        {
-            TriggerUfoAbduction();
+            case PetActivity.Walking:
+                _state = SheepState.Walking;
+                _facing = _rng.Next(2) == 0 ? 1 : -1;
+                _stateTimer = 2.0 + _rng.NextDouble() * 4.0;
+                break;
+
+            case PetActivity.Dashing:
+                _state = SheepState.Running;
+                _facing = _rng.Next(2) == 0 ? 1 : -1;
+                _stateTimer = 1.4 + _rng.NextDouble() * 2.2;
+                if (_rng.NextDouble() < 0.35)
+                    ShowBubble("Zoom!", 1.0);
+                break;
+
+            case PetActivity.Idle:
+                if (_rng.NextDouble() < 0.70)
+                {
+                    _state = SheepState.Idle;
+                    _stateTimer = 1.5 + _rng.NextDouble() * 2.5;
+                    if (_rng.NextDouble() < 0.25)
+                    {
+                        ShowBubble(VoiceText, 1.4);
+                        PlayPetVoice();
+                    }
+                }
+                else
+                {
+                    _state = SheepState.Sitting;
+                    _stateTimer = 2.5 + _rng.NextDouble() * 3.0;
+                }
+                break;
+
+            case PetActivity.Eating:
+                _state = SheepState.Eating;
+                _stateTimer = 2.2 + _rng.NextDouble() * 2.5;
+                ShowBubble("Nom...", 1.5);
+                SoundEffects.PlayNom();
+                break;
+
+            case PetActivity.Sleeping:
+                if (_rng.NextDouble() < 0.75)
+                {
+                    _state = SheepState.Sleeping;
+                    _stateTimer = 4.0 + _rng.NextDouble() * 4.0;
+                    ShowBubble("Zzz...", 2.5);
+                }
+                else
+                {
+                    _state = SheepState.Yawning;
+                    _stateTimer = 1.5;
+                    ShowBubble("*Yawn*", 1.4);
+                    SoundEffects.PlayYawn();
+                }
+                break;
+
+            case PetActivity.Ufo:
+                TriggerUfoAbduction();
+                break;
         }
     }
 
@@ -1363,6 +1370,95 @@ public partial class MainWindow : Window
         soundMenu.Items.Add(new Separator());
         soundMenu.Items.Add(volumeItem);
 
+        var activityMenu = new MenuItem { Header = "Activity Mix (100%)" };
+        var activitySliders = new Slider[ActivityMix.Count];
+        var activityLabels = new TextBlock[ActivityMix.Count];
+        bool isUpdatingActivitySliders = false;
+
+        void RefreshActivitySliders()
+        {
+            isUpdatingActivitySliders = true;
+            try
+            {
+                for (int j = 0; j < ActivityMix.Count; j++)
+                {
+                    int pct = _manager.ActivityMix.GetPercentage(j);
+                    activitySliders[j].Value = pct;
+                    activityLabels[j].Text = $"{pct}%";
+                }
+            }
+            finally
+            {
+                isUpdatingActivitySliders = false;
+            }
+        }
+
+        for (int i = 0; i < ActivityMix.Count; i++)
+        {
+            int idx = i;
+            var pctText = new TextBlock
+            {
+                Text = $"{_manager.ActivityMix.GetPercentage(i)}%",
+                Width = 36,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextAlignment = TextAlignment.Right
+            };
+            var slider = new Slider
+            {
+                Minimum = 0,
+                Maximum = 100,
+                Width = 115,
+                Value = _manager.ActivityMix.GetPercentage(i),
+                VerticalAlignment = VerticalAlignment.Center,
+                IsSnapToTickEnabled = true,
+                TickFrequency = 1
+            };
+            slider.ValueChanged += (_, args) =>
+            {
+                if (isUpdatingActivitySliders)
+                    return;
+                _manager.ActivityMix.SetPercentage(idx, (int)Math.Round(args.NewValue));
+                RefreshActivitySliders();
+                _manager.RefreshTrayActivityControls();
+            };
+
+            var rowPanel = new StackPanel
+            {
+                Orientation = System.Windows.Controls.Orientation.Horizontal
+            };
+            rowPanel.Children.Add(new TextBlock
+            {
+                Text = ActivityMix.Labels[i],
+                Width = 64,
+                Margin = new Thickness(0, 0, 6, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            rowPanel.Children.Add(slider);
+            rowPanel.Children.Add(pctText);
+
+            activitySliders[i] = slider;
+            activityLabels[i] = pctText;
+            activityMenu.Items.Add(new MenuItem
+            {
+                Header = rowPanel,
+                StaysOpenOnClick = true
+            });
+        }
+
+        var resetActivityItem = new MenuItem
+        {
+            Header = "Reset Defaults",
+            StaysOpenOnClick = true
+        };
+        resetActivityItem.Click += (_, _) =>
+        {
+            _manager.ActivityMix.ResetDefaults();
+            RefreshActivitySliders();
+            _manager.RefreshTrayActivityControls();
+        };
+        activityMenu.Items.Add(new Separator());
+        activityMenu.Items.Add(resetActivityItem);
+
         var topMostItem = new MenuItem
         {
             Header = "Always on Top",
@@ -1420,6 +1516,7 @@ public partial class MainWindow : Window
         menu.Items.Add(gravityItem);
         menu.Items.Add(climbItem);
         menu.Items.Add(soundMenu);
+        menu.Items.Add(activityMenu);
         menu.Items.Add(topMostItem);
         menu.Items.Add(clickThroughItem);
         menu.Items.Add(centerItem);

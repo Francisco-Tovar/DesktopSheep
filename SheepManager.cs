@@ -33,6 +33,9 @@ internal sealed class SheepManager
     private Forms.ToolStripMenuItem? _trayClimbItem;
     private Forms.ToolStripMenuItem? _traySoundItem;
     private Forms.TrackBar? _trayVolumeSlider;
+    private Forms.TrackBar[]? _trayActivitySliders;
+    private Forms.Label[]? _trayActivityLabels;
+    private bool _updatingTrayActivityUi;
     private Forms.ToolStripMenuItem? _trayTopMostItem;
     private Forms.ToolStripMenuItem? _trayClickThroughItem;
 
@@ -54,6 +57,7 @@ internal sealed class SheepManager
 
     public int Count => _flock.Count;
     public WindowTracker WindowTracker => _windowTracker;
+    internal ActivityMix ActivityMix { get; } = new();
 
     public void Start()
     {
@@ -471,6 +475,68 @@ internal sealed class SheepManager
         };
         trayVolumeMenu.DropDownItems.Add(new Forms.ToolStripControlHost(_trayVolumeSlider));
 
+        var trayActivityMenu = new Forms.ToolStripMenuItem("Activity Mix (100%)");
+        _trayActivitySliders = new Forms.TrackBar[ActivityMix.Count];
+        _trayActivityLabels = new Forms.Label[ActivityMix.Count];
+        for (int i = 0; i < ActivityMix.Count; i++)
+        {
+            int idx = i;
+            var rowPanel = new Forms.Panel
+            {
+                Size = new Drawing.Size(228, 28),
+                BackColor = Drawing.Color.Transparent
+            };
+            var nameLbl = new Forms.Label
+            {
+                Text = ActivityMix.Labels[i],
+                Location = new Drawing.Point(4, 6),
+                Size = new Drawing.Size(62, 16),
+                TextAlign = Drawing.ContentAlignment.MiddleLeft
+            };
+            var track = new Forms.TrackBar
+            {
+                Minimum = 0,
+                Maximum = 100,
+                TickStyle = Forms.TickStyle.None,
+                AutoSize = false,
+                Location = new Drawing.Point(68, 2),
+                Size = new Drawing.Size(112, 24),
+                Value = ActivityMix.GetPercentage(i)
+            };
+            var pctLbl = new Forms.Label
+            {
+                Text = $"{ActivityMix.GetPercentage(i)}%",
+                Location = new Drawing.Point(184, 6),
+                Size = new Drawing.Size(40, 16),
+                TextAlign = Drawing.ContentAlignment.MiddleRight
+            };
+            track.ValueChanged += (_, _) =>
+            {
+                if (_updatingTrayActivityUi)
+                    return;
+                int val = track.Value;
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ActivityMix.SetPercentage(idx, val);
+                    RefreshTrayActivityControls();
+                });
+            };
+            rowPanel.Controls.Add(nameLbl);
+            rowPanel.Controls.Add(track);
+            rowPanel.Controls.Add(pctLbl);
+            _trayActivitySliders[i] = track;
+            _trayActivityLabels[i] = pctLbl;
+            trayActivityMenu.DropDownItems.Add(new Forms.ToolStripControlHost(rowPanel));
+        }
+        trayActivityMenu.DropDownItems.Add(new Forms.ToolStripSeparator());
+        var resetMixItem = new Forms.ToolStripMenuItem("Reset Defaults");
+        resetMixItem.Click += (_, _) => System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        {
+            ActivityMix.ResetDefaults();
+            RefreshTrayActivityControls();
+        });
+        trayActivityMenu.DropDownItems.Add(resetMixItem);
+
         _trayTopMostItem = new Forms.ToolStripMenuItem("Always on Top")
         {
             CheckOnClick = true,
@@ -512,6 +578,7 @@ internal sealed class SheepManager
         menu.Items.Add(_trayClimbItem);
         menu.Items.Add(_traySoundItem);
         menu.Items.Add(trayVolumeMenu);
+        menu.Items.Add(trayActivityMenu);
         menu.Items.Add(_trayTopMostItem);
         menu.Items.Add(_trayClickThroughItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -604,6 +671,30 @@ internal sealed class SheepManager
 
         if (_trayIcon != null)
             _trayIcon.Text = _flock.Count == 1 ? "KawaiiDesktopPets (1 pet)" : $"KawaiiDesktopPets ({_flock.Count} pets)";
+
+        RefreshTrayActivityControls();
+    }
+
+    public void RefreshTrayActivityControls()
+    {
+        if (_trayActivitySliders == null || _trayActivityLabels == null)
+            return;
+
+        _updatingTrayActivityUi = true;
+        try
+        {
+            for (int i = 0; i < ActivityMix.Count; i++)
+            {
+                int pct = ActivityMix.GetPercentage(i);
+                if (_trayActivitySliders[i].Value != pct)
+                    _trayActivitySliders[i].Value = pct;
+                _trayActivityLabels[i].Text = $"{pct}%";
+            }
+        }
+        finally
+        {
+            _updatingTrayActivityUi = false;
+        }
     }
 
     private static Drawing.Icon CreateSheepTrayIcon()
