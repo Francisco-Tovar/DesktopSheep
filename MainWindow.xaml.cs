@@ -56,6 +56,11 @@ public partial class MainWindow : Window
     private Rect _attachedWindowRect;
     private IntPtr _climbingWindowHwnd;
     private bool _climbingLeftSide;
+    private bool _climbingMonitorBorder;
+    private bool _climbingMonitorLeftSide;
+    private Rect _climbTargetWorkArea;
+    private double _climbTargetFloorY;
+    private double _climbBorderX;
     private double _climbCooldown;
     private double _collisionCooldown;
     private double _topMostRefreshTimer = 1.5;
@@ -218,6 +223,7 @@ public partial class MainWindow : Window
             if (_state == SheepState.Climbing)
             {
                 _climbingWindowHwnd = IntPtr.Zero;
+                _climbingMonitorBorder = false;
                 _state = _gravityEnabled ? SheepState.Falling : SheepState.Idle;
             }
             if (_attachedWindowHwnd != IntPtr.Zero)
@@ -258,6 +264,7 @@ public partial class MainWindow : Window
         Top = wa.Top + (wa.Height - Height) / 2;
         _attachedWindowHwnd = IntPtr.Zero;
         _climbingWindowHwnd = IntPtr.Zero;
+        _climbingMonitorBorder = false;
         _velX = 0;
         _velY = 0;
         _state = _gravityEnabled ? SheepState.Falling : SheepState.Idle;
@@ -270,6 +277,7 @@ public partial class MainWindow : Window
         Top = y;
         _attachedWindowHwnd = IntPtr.Zero;
         _climbingWindowHwnd = IntPtr.Zero;
+        _climbingMonitorBorder = false;
         _velX = 0;
         _velY = 0;
         _state = _gravityEnabled ? SheepState.Falling : SheepState.Idle;
@@ -470,6 +478,22 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (_gravityEnabled && _attachedWindowHwnd == IntPtr.Zero && _climbCooldown <= 0)
+        {
+            GetDpiScale(out double dpiX, out double dpiY);
+            GetCurrentScreenAreas(dpiX, dpiY, out _, out Rect fullBounds);
+            if (TryFindMonitorBelow(fullBounds, Left + Width / 2.0, dpiX, dpiY) && _rng.NextDouble() < 0.16)
+            {
+                Top = fullBounds.Bottom + 4;
+                _velX = _facing * 40.0;
+                _velY = 0;
+                _climbCooldown = 3.5;
+                _state = SheepState.Falling;
+                ShowBubble("Wheee!", 1.0);
+                return;
+            }
+        }
+
         double roll = _rng.NextDouble();
         if (roll < 0.36)
         {
@@ -599,7 +623,7 @@ public partial class MainWindow : Window
     private void UpdatePhysics(double dt)
     {
         GetDpiScale(out double dpiX, out double dpiY);
-        Rect bounds = GetCurrentScreenWorkArea(dpiX, dpiY);
+        GetCurrentScreenAreas(dpiX, dpiY, out Rect bounds, out Rect fullBounds);
         double floorY = bounds.Bottom - Height;
         double minX = bounds.Left;
         double maxX = bounds.Right - Width;
@@ -672,15 +696,47 @@ public partial class MainWindow : Window
                 : WalkSpeed;
             Left += _facing * speed * dt;
 
-            if (Left <= minX)
+            if ((Left <= minX && _facing < 0) || (Left >= maxX && _facing > 0))
             {
-                Left = minX;
-                _facing = 1;
-            }
-            else if (Left >= maxX)
-            {
-                Left = maxX;
-                _facing = -1;
+                bool isLeftEdge = _facing < 0;
+                if (TryFindAdjacentScreen(fullBounds, _facing, Top + Height - 12, dpiX, dpiY, out Rect adjWork, out _))
+                {
+                    if (adjWork.Bottom < bounds.Bottom - 36)
+                    {
+                        if (_climbCooldown <= 0 && _attachedWindowHwnd == IntPtr.Zero && (_state == SheepState.Running || _rng.NextDouble() < 0.65))
+                        {
+                            StartMonitorBorderClimb(isLeftEdge, adjWork, isLeftEdge ? minX : maxX);
+                            return;
+                        }
+                        Left = isLeftEdge ? minX : maxX;
+                        _facing = isLeftEdge ? 1 : -1;
+                    }
+                    // Otherwise allow walking straight across onto the adjacent monitor.
+                }
+                else if (_climbCooldown <= 0 && _attachedWindowHwnd == IntPtr.Zero
+                    && TryFindMonitorAbove(fullBounds, isLeftEdge, dpiX, dpiY, out Rect aboveWork, out double climbX)
+                    && (_state == SheepState.Running || _rng.NextDouble() < 0.65))
+                {
+                    StartMonitorBorderClimb(isLeftEdge, aboveWork, climbX);
+                    return;
+                }
+                else if (_gravityEnabled && _climbCooldown <= 0 && _attachedWindowHwnd == IntPtr.Zero
+                    && TryFindMonitorBelow(fullBounds, Left + Width / 2.0, dpiX, dpiY)
+                    && _rng.NextDouble() < 0.55)
+                {
+                    Top = fullBounds.Bottom + 4;
+                    _velX = _facing * 45.0;
+                    _velY = 0;
+                    _climbCooldown = 3.5;
+                    _state = SheepState.Falling;
+                    ShowBubble("Wheee!", 1.0);
+                    return;
+                }
+                else
+                {
+                    Left = isLeftEdge ? minX : maxX;
+                    _facing = isLeftEdge ? 1 : -1;
+                }
             }
 
             // Check if we bumped into a climbable window edge
@@ -722,13 +778,15 @@ public partial class MainWindow : Window
             double newFeetY = Top + Height - footOffset;
             double centerX = Left + Width / 2.0;
 
-            if (Left <= minX)
+            if (Left <= minX && _velX <= 0
+                && !TryFindAdjacentScreen(fullBounds, -1, Top + Height / 2.0, dpiX, dpiY, out _, out _))
             {
                 Left = minX;
                 _velX = Math.Abs(_velX) * 0.5;
                 _facing = 1;
             }
-            else if (Left >= maxX)
+            else if (Left >= maxX && _velX >= 0
+                && !TryFindAdjacentScreen(fullBounds, 1, Top + Height / 2.0, dpiX, dpiY, out _, out _))
             {
                 Left = maxX;
                 _velX = -Math.Abs(_velX) * 0.5;
@@ -779,8 +837,41 @@ public partial class MainWindow : Window
         }
     }
 
+    private void StartMonitorBorderClimb(bool leftSide, Rect targetWorkArea, double climbX)
+    {
+        _climbingWindowHwnd = IntPtr.Zero;
+        _climbingMonitorBorder = true;
+        _climbingMonitorLeftSide = leftSide;
+        _climbTargetWorkArea = targetWorkArea;
+        _climbTargetFloorY = targetWorkArea.Bottom - Height;
+        _climbBorderX = climbX;
+        _facing = leftSide ? 1 : -1;
+        _state = SheepState.Climbing;
+        _velX = 0;
+        _velY = 0;
+    }
+
     private void UpdateClimbing(double dt, double dpiX, double dpiY, Rect bounds, IReadOnlyList<TrackedWindow> windows)
     {
+        if (_climbingMonitorBorder)
+        {
+            Left = _climbBorderX;
+            Top -= ClimbSpeed * dt;
+
+            if (Top <= _climbTargetFloorY)
+            {
+                Top = _climbTargetFloorY;
+                double stepIn = _climbingMonitorLeftSide ? 24 : -24;
+                Left = Math.Clamp(_climbBorderX + stepIn, _climbTargetWorkArea.Left, _climbTargetWorkArea.Right - Width);
+                _climbingMonitorBorder = false;
+                _climbCooldown = 3.5;
+                _state = SheepState.Walking;
+                _stateTimer = 2.5;
+                ShowBubble("Made it!", 1.2);
+            }
+            return;
+        }
+
         var target = _manager.WindowTracker.FindWindow(_climbingWindowHwnd, dpiX, dpiY);
         if (target == null)
         {
@@ -830,10 +921,113 @@ public partial class MainWindow : Window
 
     private Rect GetCurrentScreenWorkArea(double dpiX, double dpiY)
     {
+        GetCurrentScreenAreas(dpiX, dpiY, out Rect workArea, out _);
+        return workArea;
+    }
+
+    private void GetCurrentScreenAreas(double dpiX, double dpiY, out Rect workArea, out Rect fullBounds)
+    {
         var centerPoint = new Drawing.Point((int)((Left + Width / 2) / dpiX), (int)((Top + Height / 2) / dpiY));
         var screen = Forms.Screen.FromPoint(centerPoint);
         var wa = screen.WorkingArea;
-        return new Rect(wa.Left * dpiX, wa.Top * dpiY, wa.Width * dpiX, wa.Height * dpiY);
+        var fb = screen.Bounds;
+        workArea = new Rect(wa.Left * dpiX, wa.Top * dpiY, wa.Width * dpiX, wa.Height * dpiY);
+        fullBounds = new Rect(fb.Left * dpiX, fb.Top * dpiY, fb.Width * dpiX, fb.Height * dpiY);
+    }
+
+    private static List<(Rect WorkArea, Rect FullBounds)> GetAllScreenAreas(double dpiX, double dpiY)
+    {
+        var list = new List<(Rect, Rect)>();
+        foreach (var screen in Forms.Screen.AllScreens)
+        {
+            var wa = screen.WorkingArea;
+            var fb = screen.Bounds;
+            list.Add((
+                new Rect(wa.Left * dpiX, wa.Top * dpiY, wa.Width * dpiX, wa.Height * dpiY),
+                new Rect(fb.Left * dpiX, fb.Top * dpiY, fb.Width * dpiX, fb.Height * dpiY)
+            ));
+        }
+        return list;
+    }
+
+    private static bool TryFindAdjacentScreen(
+        Rect currentBounds,
+        int dir,
+        double probeY,
+        double dpiX,
+        double dpiY,
+        out Rect targetWorkArea,
+        out Rect targetBounds)
+    {
+        const double edgeTol = 48.0;
+        foreach (var (wa, fb) in GetAllScreenAreas(dpiX, dpiY))
+        {
+            if (fb == currentBounds)
+                continue;
+
+            bool touchesSide = dir < 0
+                ? Math.Abs(fb.Right - currentBounds.Left) <= edgeTol
+                : Math.Abs(fb.Left - currentBounds.Right) <= edgeTol;
+
+            if (touchesSide && probeY >= fb.Top - 24 && probeY <= fb.Bottom + 24)
+            {
+                targetWorkArea = wa;
+                targetBounds = fb;
+                return true;
+            }
+        }
+
+        targetWorkArea = default;
+        targetBounds = default;
+        return false;
+    }
+
+    private bool TryFindMonitorAbove(
+        Rect currentBounds,
+        bool leftSide,
+        double dpiX,
+        double dpiY,
+        out Rect targetWorkArea,
+        out double climbX)
+    {
+        const double edgeTol = 48.0;
+        double desiredX = leftSide ? currentBounds.Left : currentBounds.Right - Width;
+
+        foreach (var (wa, fb) in GetAllScreenAreas(dpiX, dpiY))
+        {
+            if (fb == currentBounds)
+                continue;
+
+            if (fb.Bottom <= currentBounds.Top + edgeTol)
+            {
+                double overlapLeft = Math.Max(fb.Left, currentBounds.Left);
+                double overlapRight = Math.Min(fb.Right, currentBounds.Right);
+                if (overlapRight - overlapLeft >= Width)
+                {
+                    targetWorkArea = wa;
+                    climbX = Math.Clamp(desiredX, wa.Left, wa.Right - Width);
+                    return true;
+                }
+            }
+        }
+
+        targetWorkArea = default;
+        climbX = 0;
+        return false;
+    }
+
+    private static bool TryFindMonitorBelow(Rect currentBounds, double centerX, double dpiX, double dpiY)
+    {
+        const double edgeTol = 48.0;
+        foreach (var (_, fb) in GetAllScreenAreas(dpiX, dpiY))
+        {
+            if (fb == currentBounds)
+                continue;
+
+            if (fb.Top >= currentBounds.Bottom - edgeTol && centerX >= fb.Left && centerX <= fb.Right)
+                return true;
+        }
+        return false;
     }
 
     private Point GetCursorPositionInDip()
@@ -857,6 +1051,7 @@ public partial class MainWindow : Window
         _isDragging = true;
         _attachedWindowHwnd = IntPtr.Zero;
         _climbingWindowHwnd = IntPtr.Zero;
+        _climbingMonitorBorder = false;
         _state = SheepState.Dragged;
         _velX = 0;
         _velY = 0;
@@ -1251,6 +1446,7 @@ public partial class MainWindow : Window
     {
         _attachedWindowHwnd = IntPtr.Zero;
         _climbingWindowHwnd = IntPtr.Zero;
+        _climbingMonitorBorder = false;
         _velX = 0;
         _velY = 0;
         _state = SheepState.Abducted;
