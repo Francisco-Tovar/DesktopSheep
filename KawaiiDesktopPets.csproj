@@ -26,6 +26,7 @@
     <Resource Include="chick.png" />
     <Resource Include="cow.png" />
     <Resource Include="toby.png" />
+    <Resource Include="santa_hat.png" />
     <Resource Include="sheep.ico" />
     <Resource Include="KawaiiDesktopPets_SFX\*.wav" />
   </ItemGroup>

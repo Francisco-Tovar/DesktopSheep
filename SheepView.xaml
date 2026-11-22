@@ -108,6 +108,24 @@
                    Width="116" Height="116"
                    Stretch="Uniform"
                    RenderOptions.BitmapScalingMode="HighQuality" />
+
+            <Image x:Name="SantaHatImage"
+                   Source="pack://application:,,,/santa_hat.png"
+                   Width="44" Height="41"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   RenderTransformOrigin="0.5,0.5"
+                   Stretch="Uniform"
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   Visibility="Collapsed"
+                   IsHitTestVisible="False">
+                <Image.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="-1" ScaleY="1" />
+                        <RotateTransform Angle="-6" />
+                    </TransformGroup>
+                </Image.RenderTransform>
+            </Image>
         </Grid>
     </Grid>
     </Viewbox>

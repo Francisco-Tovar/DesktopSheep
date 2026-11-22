@@ -162,6 +162,36 @@ public partial class SheepView : System.Windows.Controls.UserControl
 
         BodyBobTransform.Y = bobY;
         SpriteImage.Source = GetFrames(_petKind)[row, col];
+        UpdateSantaHat(state);
+    }
+
+    private static bool IsSantaHatSeason()
+    {
+        var now = DateTime.Now;
+        return now.Month == 12 || (now.Month == 11 && now.Day >= 20);
+    }
+
+    private void UpdateSantaHat(SheepState state)
+    {
+        if (!IsSantaHatSeason() || state is SheepState.Climbing or SheepState.Sleeping or SheepState.Eating)
+        {
+            SantaHatImage.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        (double cx, double topY) = _petKind switch
+        {
+            PetKind.Dog => (66.5, 13.6),
+            PetKind.Schnauzer => (69.3, 15.4),
+            PetKind.Chick => (65.6, 9.1),
+            PetKind.Cow => (74.6, 22.7),
+            PetKind.Toby => (63.2, 24.5),
+            _ => (63.1, 9.1)
+        };
+
+        double extraY = state == SheepState.Sitting ? 6.0 : 0.0;
+        SantaHatImage.Margin = new Thickness(cx - 24.0, topY - 24.0 + extraY, 0, 0);
+        SantaHatImage.Visibility = Visibility.Visible;
     }
 
     private static BitmapSource[,] LoadSpriteSheet(string resourceName)
