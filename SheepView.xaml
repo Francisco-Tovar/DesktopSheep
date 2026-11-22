@@ -29,6 +29,7 @@
         </Canvas>
 
         <Border x:Name="BubbleBorder"
+                Panel.ZIndex="10"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 Margin="0,2,0,0"
