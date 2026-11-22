@@ -173,24 +173,62 @@ public partial class SheepView : System.Windows.Controls.UserControl
 
     private void UpdateSantaHat(SheepState state)
     {
-        if (!IsSantaHatSeason() || state is SheepState.Climbing or SheepState.Sleeping or SheepState.Eating)
+        if (!IsSantaHatSeason())
         {
             SantaHatImage.Visibility = Visibility.Collapsed;
             return;
         }
 
-        (double cx, double topY) = _petKind switch
+        (double cx, double topY) = state switch
         {
-            PetKind.Dog => (66.5, 13.6),
-            PetKind.Schnauzer => (69.3, 15.4),
-            PetKind.Chick => (65.6, 9.1),
-            PetKind.Cow => (74.6, 22.7),
-            PetKind.Toby => (63.2, 24.5),
-            _ => (63.1, 9.1)
+            SheepState.Sitting => _petKind switch
+            {
+                PetKind.Dog => (60.2, 15.4),
+                PetKind.Schnauzer => (61.3, 16.3),
+                PetKind.Chick => (63.5, 13.6),
+                PetKind.Cow => (63.3, 19.9),
+                PetKind.Toby => (64.1, 21.8),
+                _ => (59.2, 9.1)
+            },
+            SheepState.Sleeping => _petKind switch
+            {
+                PetKind.Dog => (68.0, 46.0),
+                PetKind.Schnauzer => (68.0, 46.0),
+                PetKind.Chick => (70.0, 46.0),
+                PetKind.Cow => (66.0, 42.0),
+                PetKind.Toby => (68.0, 49.0),
+                _ => (68.0, 44.0)
+            },
+            SheepState.Eating => _petKind switch
+            {
+                PetKind.Dog => (66.7, 40.8),
+                PetKind.Schnauzer => (67.1, 37.2),
+                PetKind.Chick => (66.6, 34.4),
+                PetKind.Cow => (66.0, 32.0),
+                PetKind.Toby => (64.8, 30.8),
+                _ => (62.0, 37.2)
+            },
+            SheepState.Climbing => _petKind switch
+            {
+                PetKind.Dog => (56.2, 9.1),
+                PetKind.Schnauzer => (55.4, 9.1),
+                PetKind.Chick => (52.6, 10.0),
+                PetKind.Cow => (57.5, 13.6),
+                PetKind.Toby => (54.6, 15.4),
+                _ => (54.8, 9.1)
+            },
+            _ => _petKind switch
+            {
+                PetKind.Dog => (66.5, 13.6),
+                PetKind.Schnauzer => (69.3, 15.4),
+                PetKind.Chick => (65.6, 9.1),
+                PetKind.Cow => (74.6, 22.7),
+                PetKind.Toby => (63.2, 24.5),
+                _ => (63.1, 9.1)
+            }
         };
 
-        double extraY = state == SheepState.Sitting ? 6.0 : 0.0;
-        SantaHatImage.Margin = new Thickness(cx - 24.0, topY - 24.0 + extraY, 0, 0);
+        SantaHatImage.Margin = new Thickness(cx - 24.0, topY - 24.0, 0, 0);
         SantaHatImage.Visibility = Visibility.Visible;
     }
 
