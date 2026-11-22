@@ -7,7 +7,7 @@ namespace KawaiiDesktopPets;
 internal static class SoundEffects
 {
     public static bool Enabled { get; set; } = true;
-    public static double Volume { get; set; } = 0.75;
+    public static double Volume { get; set; } = 0.10;
 
     private static readonly Lazy<byte[]?> SheepBaa = LoadResourceWav("sheep_baa.wav");
     private static readonly Lazy<byte[]?> SheepHappy = LoadResourceWav("sheep_happy.wav");
