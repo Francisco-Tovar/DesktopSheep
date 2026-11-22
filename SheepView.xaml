@@ -5,6 +5,7 @@
     <Viewbox Stretch="Uniform">
     <Grid Width="140" Height="140">
         <Canvas x:Name="UfoGroup"
+                Panel.ZIndex="20"
                 Width="120" Height="110"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"
