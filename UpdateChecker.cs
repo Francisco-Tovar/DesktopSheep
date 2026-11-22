@@ -25,7 +25,7 @@ internal static class UpdateChecker
         }
     }
 
-    public static async Task CheckForUpdatesAsync(SheepManager manager)
+    public static async Task CheckForUpdatesAsync(SheepManager manager, bool silentWhenUpToDate = false)
     {
         if (Interlocked.Exchange(ref _isChecking, 1) == 1)
             return;
@@ -35,13 +35,16 @@ internal static class UpdateChecker
             using var response = await Http.GetAsync(LatestReleaseApiUrl);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                var openReleases = System.Windows.MessageBox.Show(
-                    $"No GitHub Releases are published yet.\nCurrent version: v{CurrentVersionText}\n\nOpen the GitHub Releases page?",
-                    "Check for Updates",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Information);
-                if (openReleases == MessageBoxResult.Yes)
-                    OpenUrl(ReleasesPageUrl);
+                if (!silentWhenUpToDate)
+                {
+                    var openReleases = System.Windows.MessageBox.Show(
+                        $"No GitHub Releases are published yet.\nCurrent version: v{CurrentVersionText}\n\nOpen the GitHub Releases page?",
+                        "Check for Updates",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+                    if (openReleases == MessageBoxResult.Yes)
+                        OpenUrl(ReleasesPageUrl);
+                }
                 return;
             }
 
@@ -56,22 +59,28 @@ internal static class UpdateChecker
 
             if (!TryParseVersion(tagName, out var latestVersion))
             {
-                System.Windows.MessageBox.Show(
-                    $"Could not parse latest release version ({tagName}).\nCurrent version: v{CurrentVersionText}",
-                    "Check for Updates",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                if (!silentWhenUpToDate)
+                {
+                    System.Windows.MessageBox.Show(
+                        $"Could not parse latest release version ({tagName}).\nCurrent version: v{CurrentVersionText}",
+                        "Check for Updates",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
                 return;
             }
 
             var currentVersion = GetCurrentVersion();
             if (latestVersion <= currentVersion)
             {
-                System.Windows.MessageBox.Show(
-                    $"You are running the latest version (v{CurrentVersionText}).",
-                    "Check for Updates",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                if (!silentWhenUpToDate)
+                {
+                    System.Windows.MessageBox.Show(
+                        $"You are running the latest version (v{CurrentVersionText}).",
+                        "Check for Updates",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
                 return;
             }
 
@@ -105,11 +114,14 @@ internal static class UpdateChecker
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(
-                $"Failed to check for updates:\n{ex.Message}",
-                "Check for Updates",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            if (!silentWhenUpToDate)
+            {
+                System.Windows.MessageBox.Show(
+                    $"Failed to check for updates:\n{ex.Message}",
+                    "Check for Updates",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
         finally
         {

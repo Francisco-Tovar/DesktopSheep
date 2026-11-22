@@ -66,6 +66,12 @@ internal sealed class SheepManager
         _battleTimer.Interval = TimeSpan.FromSeconds(1.0);
         _battleTimer.Tick += (_, _) => UpdateBossBattleTimer(1.0);
         _battleTimer.Start();
+
+        _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+        {
+            await Task.Delay(1500);
+            await UpdateChecker.CheckForUpdatesAsync(this, silentWhenUpToDate: true);
+        });
     }
 
     public bool IsBossBattleActive => _activeBoss != null;
