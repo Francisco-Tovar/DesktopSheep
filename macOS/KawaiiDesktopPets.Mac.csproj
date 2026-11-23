@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>KawaiiDesktopPets</AssemblyName>
+    <RootNamespace>KawaiiDesktopPets</RootNamespace>
+    <Version>1.0.1</Version>
+    <Authors>Thovarisk</Authors>
+    <Company>Thovarisk</Company>
+    <Product>KawaiiDesktopPets</Product>
+    <Description>KawaiiDesktopPets — Developed by Thovarisk</Description>
+    <Copyright>Developed by Thovarisk</Copyright>
+    <RepositoryUrl>https://github.com/Francisco-Tovar/DesktopSheep</RepositoryUrl>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\SheepState.cs" Link="SheepState.cs" />
+    <Compile Include="..\ActivityMix.cs" Link="ActivityMix.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\sheep_spritesheet_1024x640.png" LogicalName="sheep_spritesheet_1024x640.png" />
+    <EmbeddedResource Include="..\dachshound.png" LogicalName="dachshound.png" />
+    <EmbeddedResource Include="..\schnauzer.png" LogicalName="schnauzer.png" />
+    <EmbeddedResource Include="..\chick.png" LogicalName="chick.png" />
+    <EmbeddedResource Include="..\cow.png" LogicalName="cow.png" />
+    <EmbeddedResource Include="..\toby.png" LogicalName="toby.png" />
+    <EmbeddedResource Include="..\santa_hat.png" LogicalName="santa_hat.png" />
+    <EmbeddedResource Include="..\sheep.ico" LogicalName="sheep.ico" />
+    <EmbeddedResource Include="..\KawaiiDesktopPets_SFX\*.wav" LogicalName="%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

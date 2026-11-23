@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build-windows:
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -20,12 +20,91 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Publish single-file executable
+      - name: Publish Windows executable
         run: |
-          dotnet publish KawaiiDesktopPets.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=embedded -o publish_out
+          dotnet publish KawaiiDesktopPets.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=embedded -o publish_win
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-dist
+          path: publish_win/KawaiiDesktopPets.exe
+
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        rid: [osx-arm64, osx-x64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish and bundle macOS .app (${{ matrix.rid }})
+        run: |
+          RID="${{ matrix.rid }}"
+          dotnet publish macOS/KawaiiDesktopPets.Mac.csproj -c Release -r "$RID" --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o "publish_$RID"
+
+          APP_DIR="dist_$RID/KawaiiDesktopPets.app"
+          mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
+          cp -R "publish_$RID"/* "$APP_DIR/Contents/MacOS/"
+          chmod +x "$APP_DIR/Contents/MacOS/KawaiiDesktopPets"
+
+          cat > "$APP_DIR/Contents/Info.plist" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>KawaiiDesktopPets</string>
+            <key>CFBundleDisplayName</key>
+            <string>KawaiiDesktopPets</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.thovarisk.kawaiidesktoppets</string>
+            <key>CFBundleVersion</key>
+            <string>1.0.1</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0.1</string>
+            <key>CFBundleExecutable</key>
+            <string>KawaiiDesktopPets</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>12.0</string>
+            <key>LSUIElement</key>
+            <true/>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+          ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "KawaiiDesktopPets-macos-$RID.zip"
+
+      - name: Upload macOS artifact (${{ matrix.rid }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dist-${{ matrix.rid }}
+          path: KawaiiDesktopPets-macos-${{ matrix.rid }}.zip
+
+  release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: publish_out/KawaiiDesktopPets.exe
+          files: |
+            artifacts/windows-dist/KawaiiDesktopPets.exe
+            artifacts/macos-dist-osx-arm64/KawaiiDesktopPets-macos-arm64.zip
+            artifacts/macos-dist-osx-x64/KawaiiDesktopPets-macos-x64.zip
           generate_release_notes: true

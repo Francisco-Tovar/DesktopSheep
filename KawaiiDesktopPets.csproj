@@ -17,6 +17,7 @@
     <Description>KawaiiDesktopPets — Developed by Thovarisk</Description>
     <Copyright>Developed by Thovarisk</Copyright>
     <RepositoryUrl>https://github.com/Francisco-Tovar/DesktopSheep</RepositoryUrl>
+    <DefaultItemExcludes>$(DefaultItemExcludes);macOS\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
